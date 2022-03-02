@@ -122,24 +122,10 @@ public abstract class body {
             Vector2f dir = normalise(x2 - x1);
             float dist = distance(x1, x2);
 
+            // If we are too far from the other body then just exit
             if (dist > A.Radius + B.Radius) {
                 return false;
             }
-
-            // // if either ball has just collided then fling them away!
-            // if (A.justCollided) {
-            //     A.justCollided = false;
-            //     Vector2f dir = normalise(x2 - x1);
-            //     float dist = distance(A.Position, B.Position);
-            //     float move = A.Radius + B.Radius - dist;
-            //     A.SetPosition(A.Position - (dir /  2f) * move);
-
-            //     if (!B.isStatic) {
-                    
-            //     }
-            // } else {
-            //     A.justCollided = true;
-            // }
             
             // move the circle away from the other body so it no longer overlaps
             A.SetPosition(A.Position - dir * (A.Radius + B.Radius - dist));
@@ -149,17 +135,18 @@ public abstract class body {
 
             float m1 = A.mass;
             float m2 = B.mass;
+            float bounceFactor = (A.Bounciness + B.Bounciness) / 2f;
 
             if (!B.isStatic) {
                 Vector2f u1 = v1 - ((2*m2) / (m1+m2)) * dot(v1-v2, x1-x2) / (float)(Math.Pow(magnitude(x1-x2), 2)) * (x1 - x2);
                 Vector2f u2 = v2 - ((2*m1) / (m1+m2)) * dot(v2-v1, x2-x1) / (float)(Math.Pow(magnitude(x2-x1), 2)) * (x2 - x1);
 
-                A.Velocity = u1 * A.Bounciness;
-                B.Velocity = u2 * B.Bounciness;
+                A.Velocity = u1 * bounceFactor;
+                B.Velocity = u2 * bounceFactor;
             } else {
                 Vector2f hn = normalise(A.Position - B.Position);
                 Vector2f vnew = -2f * dot(A.Velocity, hn) * hn + A.Velocity;
-                A.Velocity = vnew * A.Bounciness;
+                A.Velocity = vnew * bounceFactor;
             }
 
             return true;
@@ -195,19 +182,8 @@ public abstract class body {
             if (dir.X is float.NaN || dir.Y is float.NaN) {
                 dir = normalise(B.Position - closestPoint);
             }
-
-            // Push circle out of the rectangle
-            // if (C.justCollided) {
-            //     C.justCollided = false;
-            //     C.SetPosition(C.Position + (dir * D));
-
-            //     if (!B.isStatic) {
-            //         B.SetPosition(B.Position - (dir * D));
-            //     }
-            // } else {
-            //     C.justCollided = true;
-            // }
             
+            // Correct our position and place it outside the rectangle
             C.SetPosition(C.Position - (dir * D));
 
             // find what side the circle is touching
@@ -220,9 +196,11 @@ public abstract class body {
                 hn = new Vector2f(Math.Sign(hn.X), Math.Sign(hn.Y));
             }
 
+            float bounceFactor = (C.Bounciness + B.Bounciness) / 2f;
+
             // https://www.3dkingdoms.com/weekly/weekly.php?a=2
             Vector2f vnew = -2f * dot(C.Velocity, hn) * hn + C.Velocity;
-            C.Velocity = vnew * C.Bounciness;
+            C.Velocity = vnew * bounceFactor;
 
             return true;
         }

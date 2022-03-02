@@ -65,62 +65,66 @@ namespace bouncyballs {
         public void run() {
             Color grey = new Color(100, 100, 100);
             float borderThickness = 10f;
+            float edgeBounciness = 1f;
 
             // edge of window is just a fixed rectangle
             rectbody topEdge = new rectbody(new Vector2f(screenSize.X, borderThickness),
                                             new Vector2f(screenSize.X / 2f, borderThickness / 2f),
                                             grey);
-            topEdge.isStatic = true;
             bodies.Add(topEdge);
 
             rectbody bottomEdge = new rectbody(new Vector2f(screenSize.X, borderThickness),
                                                new Vector2f(screenSize.X / 2f, screenSize.Y - borderThickness / 2f),
                                                grey);
-            bottomEdge.isStatic = true;
             bodies.Add(bottomEdge);
 
             rectbody leftEdge = new rectbody(new Vector2f(borderThickness, screenSize.Y),
                                              new Vector2f(borderThickness / 2f, screenSize.Y / 2f),
                                              grey);
-            leftEdge.isStatic = true;
             bodies.Add(leftEdge);
 
             rectbody rightEdge = new rectbody(new Vector2f(borderThickness, screenSize.Y),
                                               new Vector2f(screenSize.X - borderThickness / 2f, screenSize.Y / 2f),
                                               grey);
-            rightEdge.isStatic = true;
             bodies.Add(rightEdge);
-
-            int numBalls = 10;
-            for(int i = 0; i < numBalls; i++) {
-                float radius = 10f + (float)rand.NextDouble() * 10f;
-                float mass = randfloat(100, 300);
-                Vector2f pos = randvec2(radius, screenSize.X-radius, radius, screenSize.Y-radius);
-                //ball B = new ball(radius, pos, hsvtocol(360f/balls.Length * i, 1, 1));
-                circlebody B = new circlebody(radius, pos, hsvtocol(360f/numBalls * i, 1, 1), mass);
-                B.Velocity = randvec2(-50, 50);
-                B.Bounciness = 0.95f; // bouncy balls are 90% efficient in collisions
-                bodies.Add(B);
-            }
             
             // bucket hit box
             rectbody bucketBottom = new rectbody(new Vector2f(100, 20),
                                                  screenSize / 2f,
                                                  grey);
-            bucketBottom.isStatic = true;
             bodies.Add(bucketBottom);
 
             rectbody bucketLeft = new rectbody(new Vector2f(20, 100),
                                                bucketBottom.Position + new Vector2f(-40, -60),
                                                grey);
-            bucketLeft.isStatic = true;
             bodies.Add(bucketLeft);
 
             rectbody bucketRight = new rectbody(new Vector2f(20, 100),
                                                 bucketBottom.Position + new Vector2f(40, -60),
                                                 grey);
-            bucketRight.isStatic = true;
             bodies.Add(bucketRight);
+
+            foreach(body b in bodies) {
+                b.isStatic = true;
+                b.Bounciness = edgeBounciness;
+            }
+
+            int numBalls = 10;
+            for(int i = 0; i < numBalls; i++) {
+                float radius = 10f + (float)rand.NextDouble() * 10f;
+                float mass = randfloat(100, 300);
+                Vector2f pos = randvec2(radius + borderThickness,
+                                        screenSize.X - radius - borderThickness,
+                                        radius + borderThickness,
+                                        screenSize.Y - radius - borderThickness);
+                Color fillColour = hsvtocol(360f / numBalls * i, 1, 1);
+
+                circlebody B = new circlebody(radius, pos, fillColour, mass);
+                B.Bounciness = 0.95f; // bouncy balls are 95% efficient in collisions
+                bodies.Add(B);
+            }
+
+            bodies.Reverse();
 
             // main loop
             while (window.IsOpen) {
@@ -140,20 +144,21 @@ namespace bouncyballs {
                 Vector2f windowVel = new Vector2f();
 
                 if (grabbedWindow) {
-                    float mouseMoveMulti = 300f;
+                    float mouseMoveMulti = 750f;
                     windowVel += (Vector2f)(Mouse.GetPosition() - lastMousePos) * delta * mouseMoveMulti * timeScale;
                 }
                 
                 lastMousePos = Mouse.GetPosition();
-
                 foreach(body b in bodies) {
+
+                    // calculate collisions
                     for (int i = 0; i < bodies.Count; i++) {                        
                         body c = bodies[i];
                         if (b == c) { continue; }
 
-                        // TRYING TO PREVENT TUNNELLING START
-                        // check for time of impact to try 
-                        // alleviate tunneling
+                        // // TRYING TO PREVENT TUNNELLING START
+                        // // check for time of impact to try 
+                        // // alleviate tunneling
                         // Vector2f cbdir = normalise(c.Position - b.Position);
                         // Vector2f veldir = normalise(b.Velocity);
 
@@ -187,11 +192,12 @@ namespace bouncyballs {
 
                         //     Console.WriteLine(reportIssue);
                         // }
-                        // TRYING TO PREVENT TUNNELLING END
+                        // // TRYING TO PREVENT TUNNELLING END
                         
                         b.collide(c);
                     }
 
+                    // get other velocities
                     if (b.GetType() == typeof(circlebody)) {
                         circlebody cb = (circlebody)b;
                         cb.SetVelocity(cb.Velocity + windowVel);
@@ -204,7 +210,6 @@ namespace bouncyballs {
                         b.SetVelocity(normalise(b.Velocity) * maxSpeed);
                     }
 
-                    //b.SetVelocity(new Vector2f(maxSpeed / b.Velocity.X, maxSpeed / b.Velocity.Y));
                     b.update(delta  * timeScale);
                     b.draw(window);
                 }
